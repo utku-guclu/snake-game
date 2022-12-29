@@ -1,56 +1,84 @@
-import { getInputDirection } from "./input.js";
+import { LinkedList } from "./linkedList.js";
 
-export let SNAKE_SPEED = 3;
-const snakeBody = [{ x: 11, y: 11 }];
-let newSegments = 0;
-
-export function update() {
-  addSegments();
-  const inputDirection = getInputDirection();
-  for (let i = snakeBody.length - 2; i >= 0; i--) {
-    snakeBody[i + 1] = { ...snakeBody[i] };
+export class Snake {
+  constructor(canvas, ctx, x, y) {
+    this.canvas = canvas;
+    this.ctx = ctx;
+    this.position = { x: 60, y: 60 };
+    this.velocity = { x: 1, y: 0 };
+    this.size = 10;
+    this.body = new LinkedList();
+    this.body.addToTail(this.position);
+    this.tail = {
+      x: x,
+      y: y,
+      next: null,
+    };
   }
-  snakeBody[0].x += inputDirection.x;
-  snakeBody[0].y += inputDirection.y;
-}
 
-export function draw(gameBoard) {
-  snakeBody.forEach((segment) => {
-    const snakeElement = document.createElement("div");
-    snakeElement.style.gridRowStart = segment.y;
-    snakeElement.style.gridColumnStart = segment.x;
-    snakeElement.classList.add("snake");
-    gameBoard.appendChild(snakeElement);
-  });
-}
+  draw(ctx) {
+    ctx.fillStyle = "green";
+    // draw the head of the snake
+    ctx.fillRect(this.position.x, this.position.y, this.size, this.size / 2);
 
-export function expandSnake(amount) {
-  newSegments += amount;
-  SNAKE_SPEED++;
-}
-
-export function onSnake(position, { ignoreHead = false } = {}) {
-  return snakeBody.some((segment, index) => {
-    if (ignoreHead && index === 0) return false;
-    return equalPositions(segment, position);
-  });
-}
-
-export function getSnakeHead() {
-  return snakeBody[0];
-}
-
-export function snakeIntersection() {
-  return onSnake(snakeBody[0], { ignoreHead: true });
-}
-
-function equalPositions(pos1, pos2) {
-  return pos1.x === pos2.x && pos1.y === pos2.y;
-}
-
-function addSegments() {
-  for (let i = 0; i < newSegments; i++) {
-    snakeBody.push({ ...snakeBody[snakeBody.length - 1] });
+    // check if the head is defined
+    if (this.head) {
+      // draw the rest of the snake using the linked list
+      let current = this.head.next;
+      while (current) {
+        ctx.fillRect(current.x, current.y, this.size, this.size / 2);
+        current = current.next;
+      }
+    }
   }
-  newSegments = 0;
+
+  move() {
+    // update the snake's position based on its velocity
+    this.position.x += this.velocity.x;
+    this.position.y += this.velocity.y;
+
+    // teleport the snake to the opposite side of the canvas if it goes outside the bounds
+    if (this.position.x < 0) {
+      this.position.x = this.canvas.width - this.size;
+    } else if (this.position.x + this.size > this.canvas.width) {
+      this.position.x = 0;
+    }
+    if (this.position.y < 0) {
+      this.position.y = this.canvas.height - this.size;
+    } else if (this.position.y + this.size > this.canvas.height) {
+      this.position.y = 0;
+    }
+
+    //snake movement
+    // add the new position to the tail of the linked list
+    this.body.addToTail(this.position);
+
+    // remove the head of the linked list if the snake has not grown
+    if (this.body.length > this.size) {
+      this.body.removeHead();
+    }
+  }
+
+  grow() {
+    // check if the tail is defined
+    if (this.tail) {
+      // add a new node to the end of the list
+      const newTail = {
+        x: this.tail.x,
+        y: this.tail.y,
+        next: null,
+      };
+      this.tail.next = newTail;
+      this.tail = newTail;
+    } else {
+      // initialize the tail if it has not been initialized yet
+      this.tail = newHead;
+    }
+  }
+
+  setVelocity(x, y) {
+    // set the snake's velocity
+    this.velocity.x = x;
+    this.velocity.y = y;
+  }
 }
